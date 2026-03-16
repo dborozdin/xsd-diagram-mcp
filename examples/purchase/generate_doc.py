@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import json
 import html
-import os
 import sys
 from pathlib import Path
 
@@ -32,32 +31,61 @@ from xsd_diagram_mcp.server import (
 SCHEMA_PATH = str(Path(__file__).resolve().parent / "purchase.xsd")
 OUTPUT_PATH = str(Path(__file__).resolve().parent / "purchase_doc.html")
 
-# Bilingual descriptions (Russian translations for the fixed example schema)
+# Bilingual descriptions: (english, russian)
 TRANSLATIONS = {
+    "_title": (
+        "Purchase Order Schema",
+        "\u0421\u0445\u0435\u043c\u0430 \u0437\u0430\u043a\u0430\u0437\u0430 \u043d\u0430 \u043f\u043e\u043a\u0443\u043f\u043a\u0443",
+    ),
     "_schema": (
         "Purchase Order schema. "
         "Describes a purchase transaction where a Customer buys products at a Shop.",
-        "Схема заказа на покупку. "
-        "Описывает транзакцию покупки, в которой покупатель приобретает товары в магазине.",
+        "\u0421\u0445\u0435\u043c\u0430 \u0437\u0430\u043a\u0430\u0437\u0430 \u043d\u0430 \u043f\u043e\u043a\u0443\u043f\u043a\u0443. "
+        "\u041e\u043f\u0438\u0441\u044b\u0432\u0430\u0435\u0442 \u0442\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0438\u044e \u043f\u043e\u043a\u0443\u043f\u043a\u0438, \u0432 \u043a\u043e\u0442\u043e\u0440\u043e\u0439 \u043f\u043e\u043a\u0443\u043f\u0430\u0442\u0435\u043b\u044c \u043f\u0440\u0438\u043e\u0431\u0440\u0435\u0442\u0430\u0435\u0442 \u0442\u043e\u0432\u0430\u0440\u044b \u0432 \u043c\u0430\u0433\u0430\u0437\u0438\u043d\u0435.",
+    ),
+    "_overview": (
+        "All top-level elements defined in the schema.",
+        "\u0412\u0441\u0435 \u044d\u043b\u0435\u043c\u0435\u043d\u0442\u044b \u0432\u0435\u0440\u0445\u043d\u0435\u0433\u043e \u0443\u0440\u043e\u0432\u043d\u044f, \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u0451\u043d\u043d\u044b\u0435 \u0432 \u0441\u0445\u0435\u043c\u0435.",
+    ),
+    "_overview_title": (
+        "Overview",
+        "\u041e\u0431\u0437\u043e\u0440",
+    ),
+    "_types_title": (
+        "Simple Types",
+        "\u041f\u0440\u043e\u0441\u0442\u044b\u0435 \u0442\u0438\u043f\u044b",
     ),
     "Purchase": (
         "A completed purchase transaction linking a customer, "
         "a shop, and the purchased items.",
-        "Завершённая транзакция покупки, связывающая покупателя, "
-        "магазин и приобретённые товары.",
+        "\u0417\u0430\u0432\u0435\u0440\u0448\u0451\u043d\u043d\u0430\u044f \u0442\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0438\u044f \u043f\u043e\u043a\u0443\u043f\u043a\u0438, \u0441\u0432\u044f\u0437\u044b\u0432\u0430\u044e\u0449\u0430\u044f \u043f\u043e\u043a\u0443\u043f\u0430\u0442\u0435\u043b\u044f, "
+        "\u043c\u0430\u0433\u0430\u0437\u0438\u043d \u0438 \u043f\u0440\u0438\u043e\u0431\u0440\u0435\u0442\u0451\u043d\u043d\u044b\u0435 \u0442\u043e\u0432\u0430\u0440\u044b.",
     ),
     "Customer": (
         "The buyer who made the purchase.",
-        "Покупатель, совершивший покупку.",
+        "\u041f\u043e\u043a\u0443\u043f\u0430\u0442\u0435\u043b\u044c, \u0441\u043e\u0432\u0435\u0440\u0448\u0438\u0432\u0448\u0438\u0439 \u043f\u043e\u043a\u0443\u043f\u043a\u0443.",
     ),
     "Shop": (
         "The retail location where the purchase was made.",
-        "Торговая точка, в которой была совершена покупка.",
+        "\u0422\u043e\u0440\u0433\u043e\u0432\u0430\u044f \u0442\u043e\u0447\u043a\u0430, \u0432 \u043a\u043e\u0442\u043e\u0440\u043e\u0439 \u0431\u044b\u043b\u0430 \u0441\u043e\u0432\u0435\u0440\u0448\u0435\u043d\u0430 \u043f\u043e\u043a\u0443\u043f\u043a\u0430.",
     ),
 }
 
-# Elements to render individual diagrams for
 DIAGRAM_ELEMENTS = ["Purchase", "Customer", "Shop"]
+
+
+def _bilingual(en: str, ru: str) -> str:
+    """Wrap text in lang-tagged spans."""
+    return (
+        f'<span lang="en">{html.escape(en)}</span>'
+        f'<span lang="ru">{html.escape(ru)}</span>'
+    )
+
+
+def _t(key: str) -> str:
+    """Get bilingual HTML for a translation key."""
+    en, ru = TRANSLATIONS[key]
+    return _bilingual(en, ru)
 
 
 def generate() -> str:
@@ -71,25 +99,21 @@ def generate() -> str:
     for name in DIAGRAM_ELEMENTS:
         element_diagrams[name] = render_xsd_diagram(SCHEMA_PATH, name, depth=2)
 
-    # --- Build HTML ---
+    # --- Build HTML sections ---
     sections: list[str] = []
 
     # Header
-    en_desc, ru_desc = TRANSLATIONS["_schema"]
     sections.append(f"""\
     <header>
-      <h1>Purchase Order Schema<br>
-        <span class="ru">Схема заказа на покупку</span></h1>
-      <p class="description">{html.escape(en_desc)}</p>
-      <p class="description ru">{html.escape(ru_desc)}</p>
+      <h1>{_t("_title")}</h1>
+      <p class="description">{_t("_schema")}</p>
     </header>""")
 
     # Overview
     sections.append(f"""\
     <section>
-      <h2>Overview / <span class="ru">Обзор</span></h2>
-      <p>All top-level elements defined in the schema.
-        <span class="ru">Все элементы верхнего уровня, определённые в схеме.</span></p>
+      <h2>{_t("_overview_title")}</h2>
+      <p>{_t("_overview")}</p>
       <div class="diagram">{overview_svg}</div>
     </section>""")
 
@@ -97,18 +121,10 @@ def generate() -> str:
     for name in DIAGRAM_ELEMENTS:
         en_text, ru_text = TRANSLATIONS.get(name, ("", ""))
         svg = element_diagrams[name]
-
-        # Collect fields from elements_json
-        el = next(
-            (e for e in elements_json["elements"] if e["name"] == name), None
-        )
-        annotation = el["annotation"] if el else ""
-
         sections.append(f"""\
     <section>
       <h2>{html.escape(name)}</h2>
-      <p class="description">{html.escape(en_text)}</p>
-      <p class="description ru">{html.escape(ru_text)}</p>
+      <p class="description">{_bilingual(en_text, ru_text)}</p>
       <div class="diagram">{svg}</div>
     </section>""")
 
@@ -127,7 +143,7 @@ def generate() -> str:
     if type_rows:
         sections.append(f"""\
     <section>
-      <h2>Simple Types / <span class="ru">Простые типы</span></h2>
+      <h2>{_t("_types_title")}</h2>
       <table>
         <thead>
           <tr><th>Type</th><th>Base</th><th>Values</th></tr>
@@ -152,7 +168,6 @@ def generate() -> str:
       --fg: #222;
       --accent: #2c5282;
       --border: #e2e8f0;
-      --ru-color: #555;
     }}
     * {{ margin: 0; padding: 0; box-sizing: border-box; }}
     body {{
@@ -171,7 +186,6 @@ def generate() -> str:
       padding-bottom: 0.5rem;
       margin-bottom: 1rem;
     }}
-    h1 .ru {{ font-size: 1.2rem; font-weight: 400; color: var(--ru-color); }}
     h2 {{
       font-size: 1.3rem;
       color: var(--accent);
@@ -180,13 +194,8 @@ def generate() -> str:
       border-bottom: 1px solid var(--border);
       padding-bottom: 0.3rem;
     }}
-    h2 .ru {{ font-weight: 400; color: var(--ru-color); }}
     .description {{
       margin-bottom: 0.3rem;
-    }}
-    .ru {{
-      color: var(--ru-color);
-      font-style: italic;
     }}
     .diagram {{
       margin: 1rem 0;
@@ -228,15 +237,65 @@ def generate() -> str:
       color: #888;
       text-align: center;
     }}
+
+    /* --- Language toggle --- */
+    .lang-toggle {{
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      z-index: 100;
+    }}
+    .lang-toggle button {{
+      border: none;
+      padding: 0.35rem 0.75rem;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-family: inherit;
+      background: #fff;
+      color: var(--fg);
+      transition: background 0.15s, color 0.15s;
+    }}
+    .lang-toggle button:not(:last-child) {{
+      border-right: 1px solid var(--border);
+    }}
+    .lang-toggle button.active {{
+      background: var(--accent);
+      color: #fff;
+    }}
+
+    /* Hide inactive language */
+    html[lang="en"] [lang="ru"] {{ display: none; }}
+    html[lang="ru"] [lang="en"] {{ display: none; }}
   </style>
 </head>
 <body>
+    <div class="lang-toggle">
+      <button class="active" onclick="setLang('en')">EN</button>
+      <button onclick="setLang('ru')">RU</button>
+    </div>
+
 {body}
 
     <footer>
       Generated by <strong>xsd-diagram-mcp</strong> &mdash;
       MCP server for XSD schema visualization
     </footer>
+
+    <script>
+    function setLang(lang) {{
+      document.documentElement.lang = lang;
+      document.querySelectorAll('.lang-toggle button').forEach(function(btn) {{
+        btn.classList.toggle('active', btn.textContent.trim() === lang.toUpperCase());
+      }});
+    }}
+    </script>
 </body>
 </html>
 """

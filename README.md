@@ -83,35 +83,57 @@ In Claude or Copilot chat:
 
 ## Example: generating schema documentation
 
-## Пример: генерация документации по схеме
-
 The `examples/purchase/` directory contains a complete working example — an annotated XSD schema and a script that produces an HTML documentation page with descriptions and SVG diagrams.
+
+<details>
+<summary>🇷🇺 По-русски</summary>
 
 В папке `examples/purchase/` находится готовый пример — аннотированная XSD-схема и скрипт, который создаёт HTML-страницу с описаниями элементов и SVG-диаграммами.
 
-**Files / Файлы:**
-- `purchase.xsd` — sample schema with annotated elements (Customer, Shop, Purchase) / схема с аннотациями
-- `generate_doc.py` — script that calls MCP tools and assembles HTML / скрипт генерации документации
-- `purchase_doc.html` — the resulting documentation / готовый результат
+</details>
 
-### Try it yourself / Попробуйте сами
+**Files:**
+- `purchase.xsd` — sample schema with annotated elements (Customer, Shop, Purchase)
+- `generate_doc.py` — script that calls MCP tools and assembles HTML
+- `purchase_doc.html` — the resulting documentation (with EN/RU toggle)
 
-**1. Generate documentation programmatically / Программная генерация:**
+### Source: XSD schema overview
+
+The schema defines three top-level elements — Purchase, Customer, and Shop — each with annotations describing their purpose:
+
+![Schema overview](examples/purchase/overview.svg)
+
+### Result: element diagram with annotations
+
+The `generate_doc.py` script (or an LLM via MCP) produces an HTML page where each element gets a description from its annotation and an SVG diagram. The page has an EN/RU language toggle:
+
+![Purchase element diagram](examples/purchase/purchase_element.svg)
+
+The full result is in [`purchase_doc.html`](examples/purchase/purchase_doc.html) — open it in a browser to see all sections and switch languages.
+
+### Try it yourself
+
+**1. Generate documentation programmatically:**
 
 ```bash
 python examples/purchase/generate_doc.py
 # → examples/purchase/purchase_doc.html
 ```
 
-**2. Or ask your LLM via MCP / Или попросите LLM через MCP:**
+**2. Or ask your LLM via MCP:**
 
 > "Open `examples/purchase/purchase.xsd`, read the annotations for all elements,
 > then generate an HTML page with a description of each element
 > (based on annotations) and an SVG diagram next to it."
 
+<details>
+<summary>🇷🇺 Промпт на русском</summary>
+
 > «Открой `examples/purchase/purchase.xsd`, прочитай аннотации всех элементов
 > и сгенерируй HTML-страницу с описанием каждого элемента
 > (на основе аннотаций) и SVG-диаграммой рядом.»
+
+</details>
 
 ## Technology
 
