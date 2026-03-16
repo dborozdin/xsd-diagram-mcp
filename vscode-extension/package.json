@@ -1,0 +1,74 @@
+{
+  "name": "xsd-diagram-mcp",
+  "displayName": "XSD Diagram MCP Server",
+  "description": "MCP server for XSD schema visualization — generates SVG diagrams in Altova XMLSpy notation",
+  "version": "0.1.0",
+  "publisher": "DmitryBorozdin",
+  "license": "MIT",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dborozdin/xsd-diagram-mcp.git"
+  },
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "categories": [
+    "AI",
+    "Other"
+  ],
+  "keywords": [
+    "mcp",
+    "xsd",
+    "xml",
+    "schema",
+    "diagram",
+    "svg",
+    "copilot"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "xsd-diagram-mcp",
+        "label": "XSD Diagram MCP Server"
+      }
+    ],
+    "configuration": {
+      "title": "XSD Diagram MCP",
+      "properties": {
+        "xsdDiagramMcp.pythonPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to Python 3.10+ executable. Leave empty for auto-detection."
+        },
+        "xsdDiagramMcp.lang": {
+          "type": "string",
+          "default": "",
+          "description": "Default annotation language (e.g. 'en', 'ru'). Empty = schema default."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "xsdDiagramMcp.reinstall",
+        "title": "XSD Diagram MCP: Reinstall Python Environment"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.js --production",
+    "watch": "node esbuild.js --watch",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.99.0",
+    "@types/node": "^20.0.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.5.0",
+    "@vscode/vsce": "^3.0.0"
+  }
+}
