@@ -170,3 +170,25 @@ MULTI_ELEMENT_XSD = """\
   <xs:element name="Gamma" type="xs:date"/>
 </xs:schema>
 """
+
+MULTILANG_XSD = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:annotation>
+    <xs:documentation xml:lang="en">Schema with multilingual annotations.</xs:documentation>
+    <xs:documentation xml:lang="ru">Схема с мультиязычными аннотациями.</xs:documentation>
+  </xs:annotation>
+  <xs:element name="Greeting" type="xs:string">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">Hello</xs:documentation>
+      <xs:documentation xml:lang="ru">Привет</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+  <xs:element name="Farewell" type="xs:string">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">Goodbye</xs:documentation>
+      <xs:documentation xml:lang="ru">До свидания</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+</xs:schema>
+"""

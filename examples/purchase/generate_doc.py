@@ -5,6 +5,10 @@ This script demonstrates how xsd-diagram-mcp tools can be used
 programmatically to produce schema documentation with embedded
 SVG diagrams and annotation-based descriptions.
 
+Annotations are read from the XSD file itself (using xml:lang).
+For each supported language (EN / RU), separate diagrams are generated
+so that annotation text on diagrams matches the selected language.
+
 Usage:
     python examples/purchase/generate_doc.py
 
@@ -31,44 +35,12 @@ from xsd_diagram_mcp.server import (
 SCHEMA_PATH = str(Path(__file__).resolve().parent / "purchase.xsd")
 OUTPUT_PATH = str(Path(__file__).resolve().parent / "purchase_doc.html")
 
-# Bilingual descriptions: (english, russian)
-TRANSLATIONS = {
-    "_title": (
-        "Purchase Order Schema",
-        "\u0421\u0445\u0435\u043c\u0430 \u0437\u0430\u043a\u0430\u0437\u0430 \u043d\u0430 \u043f\u043e\u043a\u0443\u043f\u043a\u0443",
-    ),
-    "_schema": (
-        "Purchase Order schema. "
-        "Describes a purchase transaction where a Customer buys products at a Shop.",
-        "\u0421\u0445\u0435\u043c\u0430 \u0437\u0430\u043a\u0430\u0437\u0430 \u043d\u0430 \u043f\u043e\u043a\u0443\u043f\u043a\u0443. "
-        "\u041e\u043f\u0438\u0441\u044b\u0432\u0430\u0435\u0442 \u0442\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0438\u044e \u043f\u043e\u043a\u0443\u043f\u043a\u0438, \u0432 \u043a\u043e\u0442\u043e\u0440\u043e\u0439 \u043f\u043e\u043a\u0443\u043f\u0430\u0442\u0435\u043b\u044c \u043f\u0440\u0438\u043e\u0431\u0440\u0435\u0442\u0430\u0435\u0442 \u0442\u043e\u0432\u0430\u0440\u044b \u0432 \u043c\u0430\u0433\u0430\u0437\u0438\u043d\u0435.",
-    ),
-    "_overview": (
-        "All top-level elements defined in the schema.",
-        "\u0412\u0441\u0435 \u044d\u043b\u0435\u043c\u0435\u043d\u0442\u044b \u0432\u0435\u0440\u0445\u043d\u0435\u0433\u043e \u0443\u0440\u043e\u0432\u043d\u044f, \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u0451\u043d\u043d\u044b\u0435 \u0432 \u0441\u0445\u0435\u043c\u0435.",
-    ),
-    "_overview_title": (
-        "Overview",
-        "\u041e\u0431\u0437\u043e\u0440",
-    ),
-    "_types_title": (
-        "Simple Types",
-        "\u041f\u0440\u043e\u0441\u0442\u044b\u0435 \u0442\u0438\u043f\u044b",
-    ),
-    "Purchase": (
-        "A completed purchase transaction linking a customer, "
-        "a shop, and the purchased items.",
-        "\u0417\u0430\u0432\u0435\u0440\u0448\u0451\u043d\u043d\u0430\u044f \u0442\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0438\u044f \u043f\u043e\u043a\u0443\u043f\u043a\u0438, \u0441\u0432\u044f\u0437\u044b\u0432\u0430\u044e\u0449\u0430\u044f \u043f\u043e\u043a\u0443\u043f\u0430\u0442\u0435\u043b\u044f, "
-        "\u043c\u0430\u0433\u0430\u0437\u0438\u043d \u0438 \u043f\u0440\u0438\u043e\u0431\u0440\u0435\u0442\u0451\u043d\u043d\u044b\u0435 \u0442\u043e\u0432\u0430\u0440\u044b.",
-    ),
-    "Customer": (
-        "The buyer who made the purchase.",
-        "\u041f\u043e\u043a\u0443\u043f\u0430\u0442\u0435\u043b\u044c, \u0441\u043e\u0432\u0435\u0440\u0448\u0438\u0432\u0448\u0438\u0439 \u043f\u043e\u043a\u0443\u043f\u043a\u0443.",
-    ),
-    "Shop": (
-        "The retail location where the purchase was made.",
-        "\u0422\u043e\u0440\u0433\u043e\u0432\u0430\u044f \u0442\u043e\u0447\u043a\u0430, \u0432 \u043a\u043e\u0442\u043e\u0440\u043e\u0439 \u0431\u044b\u043b\u0430 \u0441\u043e\u0432\u0435\u0440\u0448\u0435\u043d\u0430 \u043f\u043e\u043a\u0443\u043f\u043a\u0430.",
-    ),
+LANGUAGES = ["en", "ru"]
+
+# UI labels not present in XSD — keep as translations
+UI_TRANSLATIONS = {
+    "_overview_title": ("Overview", "Обзор"),
+    "_types_title": ("Simple Types", "Простые типы"),
 }
 
 DIAGRAM_ELEMENTS = ["Purchase", "Customer", "Shop"]
@@ -82,22 +54,60 @@ def _bilingual(en: str, ru: str) -> str:
     )
 
 
-def _t(key: str) -> str:
-    """Get bilingual HTML for a translation key."""
-    en, ru = TRANSLATIONS[key]
+def _ui(key: str) -> str:
+    """Get bilingual HTML for a UI translation key."""
+    en, ru = UI_TRANSLATIONS[key]
     return _bilingual(en, ru)
+
+
+def _build_annotation_map(schema_path: str, lang: str) -> dict[str, str]:
+    """Build element-name -> annotation text map for a given language."""
+    data = json.loads(list_xsd_elements(schema_path, lang=lang))
+    result: dict[str, str] = {}
+    for e in data.get("elements", []):
+        if e.get("annotation"):
+            result[e["name"]] = e["annotation"]
+    return result
+
+
+def _get_schema_annotation(schema_path: str, lang: str) -> str:
+    """Get schema-level annotation for a given language."""
+    data = json.loads(parse_xsd(schema_path, lang=lang))
+    return data.get("annotation", "")
 
 
 def generate() -> str:
     """Generate the HTML documentation and return it as a string."""
 
-    # --- Gather data via MCP tools ---
-    elements_json = json.loads(list_xsd_elements(SCHEMA_PATH))
-    overview_svg = render_xsd_overview(SCHEMA_PATH)
+    # --- Gather data per language ---
+    annotations: dict[str, dict[str, str]] = {}
+    schema_ann: dict[str, str] = {}
+    for lang in LANGUAGES:
+        annotations[lang] = _build_annotation_map(SCHEMA_PATH, lang)
+        schema_ann[lang] = _get_schema_annotation(SCHEMA_PATH, lang)
 
-    element_diagrams: dict[str, str] = {}
+    # Schema title from annotation (first sentence or all)
+    schema_title = {
+        "en": "Purchase Order Schema",
+        "ru": "Схема заказа на покупку",
+    }
+
+    # --- Overview diagrams per language ---
+    overview_svgs: dict[str, str] = {}
+    for lang in LANGUAGES:
+        overview_svgs[lang] = render_xsd_overview(SCHEMA_PATH, lang=lang)
+
+    # --- Element diagrams per language ---
+    element_diagrams: dict[str, dict[str, str]] = {}
     for name in DIAGRAM_ELEMENTS:
-        element_diagrams[name] = render_xsd_diagram(SCHEMA_PATH, name, depth=2)
+        element_diagrams[name] = {}
+        for lang in LANGUAGES:
+            element_diagrams[name][lang] = render_xsd_diagram(
+                SCHEMA_PATH, name, depth=2, lang=lang,
+            )
+
+    # Simple types (language-independent)
+    elements_json = json.loads(list_xsd_elements(SCHEMA_PATH))
 
     # --- Build HTML sections ---
     sections: list[str] = []
@@ -105,27 +115,34 @@ def generate() -> str:
     # Header
     sections.append(f"""\
     <header>
-      <h1>{_t("_title")}</h1>
-      <p class="description">{_t("_schema")}</p>
+      <h1>{_bilingual(schema_title["en"], schema_title["ru"])}</h1>
+      <p class="description">{_bilingual(schema_ann.get("en", ""), schema_ann.get("ru", ""))}</p>
     </header>""")
 
     # Overview
+    overview_diagram_html = "".join(
+        f'<div lang="{lang}" class="diagram">{overview_svgs[lang]}</div>'
+        for lang in LANGUAGES
+    )
     sections.append(f"""\
     <section>
-      <h2>{_t("_overview_title")}</h2>
-      <p>{_t("_overview")}</p>
-      <div class="diagram">{overview_svg}</div>
+      <h2>{_ui("_overview_title")}</h2>
+      {overview_diagram_html}
     </section>""")
 
     # Per-element sections
     for name in DIAGRAM_ELEMENTS:
-        en_text, ru_text = TRANSLATIONS.get(name, ("", ""))
-        svg = element_diagrams[name]
+        en_desc = annotations.get("en", {}).get(name, "")
+        ru_desc = annotations.get("ru", {}).get(name, "")
+        diagram_html = "".join(
+            f'<div lang="{lang}" class="diagram">{element_diagrams[name][lang]}</div>'
+            for lang in LANGUAGES
+        )
         sections.append(f"""\
     <section>
       <h2>{html.escape(name)}</h2>
-      <p class="description">{_bilingual(en_text, ru_text)}</p>
-      <div class="diagram">{svg}</div>
+      <p class="description">{_bilingual(en_desc, ru_desc)}</p>
+      {diagram_html}
     </section>""")
 
     # Types section
@@ -143,7 +160,7 @@ def generate() -> str:
     if type_rows:
         sections.append(f"""\
     <section>
-      <h2>{_t("_types_title")}</h2>
+      <h2>{_ui("_types_title")}</h2>
       <table>
         <thead>
           <tr><th>Type</th><th>Base</th><th>Values</th></tr>

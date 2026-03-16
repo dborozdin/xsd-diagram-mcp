@@ -59,10 +59,12 @@ Add to your `.vscode/mcp.json`:
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `parse_xsd` | Parse XSD into JSON structure | `schema_path` (str) |
-| `render_xsd_diagram` | SVG diagram for a specific element | `schema_path` (str), `root_element` (str), `depth` (int, 0-5, default 2) |
-| `render_xsd_overview` | Overview SVG of all top-level elements | `schema_path` (str) |
-| `list_xsd_elements` | JSON list of elements, types, attributes | `schema_path` (str) |
+| `parse_xsd` | Parse XSD into JSON structure | `schema_path` (str), `lang` (str, optional) |
+| `render_xsd_diagram` | SVG diagram for a specific element | `schema_path` (str), `root_element` (str), `depth` (int, 0-5, default 2), `lang` (str, optional) |
+| `render_xsd_overview` | Overview SVG of all top-level elements | `schema_path` (str), `lang` (str, optional) |
+| `list_xsd_elements` | JSON list of elements, types, attributes | `schema_path` (str), `lang` (str, optional) |
+
+All tools accept an optional `lang` parameter for **multilingual annotation support** (see below).
 
 ## Usage examples
 
@@ -73,6 +75,37 @@ In Claude or Copilot chat:
 > "List all elements and types in `my_schema.xsd`"
 
 > "Generate an overview diagram of `catalog.xsd`"
+
+## Multilingual annotations
+
+XSD supports multiple documentation languages via `xml:lang`:
+
+```xml
+<xs:element name="Customer" type="CustomerType">
+  <xs:annotation>
+    <xs:documentation xml:lang="en">The buyer who made the purchase.</xs:documentation>
+    <xs:documentation xml:lang="ru">Покупатель, совершивший покупку.</xs:documentation>
+  </xs:annotation>
+</xs:element>
+```
+
+Pass the `lang` parameter to any tool to select the annotation language — both in text output and on SVG diagrams:
+
+```
+render_xsd_diagram("schema.xsd", "Customer", lang="ru")
+list_xsd_elements("schema.xsd", lang="ru")
+```
+
+**Fallback logic:** preferred language → `en` → unlabeled → first available.
+
+<details>
+<summary>🇷🇺 По-русски</summary>
+
+XSD позволяет указывать аннотации на нескольких языках через атрибут `xml:lang`. Передайте параметр `lang` в любой инструмент, чтобы выбрать язык аннотаций — как в текстовом выводе, так и на SVG-диаграммах.
+
+**Порядок выбора:** запрошенный язык → `en` → без метки → первый доступный.
+
+</details>
 
 ## Use cases
 
@@ -93,9 +126,9 @@ The `examples/purchase/` directory contains a complete working example — an an
 </details>
 
 **Files:**
-- `purchase.xsd` — sample schema with annotated elements (Customer, Shop, Purchase)
-- `generate_doc.py` — script that calls MCP tools and assembles HTML
-- `purchase_doc.html` — the resulting documentation (with EN/RU toggle)
+- `purchase.xsd` — sample schema with bilingual annotations (`xml:lang="en"` / `xml:lang="ru"`)
+- `generate_doc.py` — script that calls MCP tools with `lang` parameter and assembles HTML
+- `purchase_doc.html` — the resulting documentation (with EN/RU toggle, including language-specific diagrams)
 
 ### Source: XSD schema overview
 

@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Generate Purchase Doc",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/examples/purchase/generate_doc.py",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      }
+    },
+    {
+      "name": "Run MCP Server",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "xsd_diagram_mcp.server",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      }
+    }
+  ]
+}

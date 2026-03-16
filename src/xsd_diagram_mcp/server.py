@@ -31,17 +31,20 @@ _registry = SchemaRegistry()
 
 
 @mcp.tool()
-def parse_xsd(schema_path: str) -> str:
+def parse_xsd(schema_path: str, lang: str = "") -> str:
     """Parse an XSD schema file and return its structure as JSON.
 
     Args:
         schema_path: Absolute or relative path to the .xsd file.
+        lang: Preferred annotation language (e.g. 'en', 'ru').
+              When set, annotations in that language are returned
+              (with fallback to default if unavailable).
 
     Returns:
         JSON string with schema structure (elements, types, attributes, imports).
     """
     schema, _ = parse_schema_with_imports(os.path.abspath(schema_path))
-    return json.dumps(schema.to_dict(), ensure_ascii=False, indent=2)
+    return json.dumps(schema.to_dict(lang=lang), ensure_ascii=False, indent=2)
 
 
 @mcp.tool()
@@ -49,6 +52,7 @@ def render_xsd_diagram(
     schema_path: str,
     root_element: str,
     depth: int = 2,
+    lang: str = "",
 ) -> str:
     """Generate an SVG diagram for an XSD element.
 
@@ -59,6 +63,8 @@ def render_xsd_diagram(
         schema_path: Path to the .xsd file.
         root_element: Name of the global element to visualize.
         depth: Expansion depth for child elements (0-5). Default: 2.
+        lang: Preferred annotation language (e.g. 'en', 'ru').
+              Annotations on the diagram will be shown in this language.
 
     Returns:
         SVG string (XML) ready for display or saving to a file.
@@ -69,11 +75,12 @@ def render_xsd_diagram(
         root_element,
         depth=depth,
         registry=_registry,
+        lang=lang,
     )
 
 
 @mcp.tool()
-def render_xsd_overview(schema_path: str) -> str:
+def render_xsd_overview(schema_path: str, lang: str = "") -> str:
     """Generate an overview SVG diagram showing all top-level elements.
 
     Each element is rendered as a single box without expansion.
@@ -81,6 +88,7 @@ def render_xsd_overview(schema_path: str) -> str:
 
     Args:
         schema_path: Path to the .xsd file.
+        lang: Preferred annotation language (e.g. 'en', 'ru').
 
     Returns:
         SVG string with all global elements listed vertically.
@@ -88,11 +96,12 @@ def render_xsd_overview(schema_path: str) -> str:
     return render_overview_diagram(
         os.path.abspath(schema_path),
         registry=_registry,
+        lang=lang,
     )
 
 
 @mcp.tool()
-def list_xsd_elements(schema_path: str) -> str:
+def list_xsd_elements(schema_path: str, lang: str = "") -> str:
     """List all elements, complex types, and simple types in an XSD schema.
 
     Returns a JSON summary including names, type references,
@@ -100,6 +109,8 @@ def list_xsd_elements(schema_path: str) -> str:
 
     Args:
         schema_path: Path to the .xsd file.
+        lang: Preferred annotation language (e.g. 'en', 'ru').
+              When set, annotations in that language are returned.
 
     Returns:
         JSON with lists: elements, complex_types, simple_types.
@@ -112,7 +123,7 @@ def list_xsd_elements(schema_path: str) -> str:
                 "name": e.name,
                 "type_ref": e.type_ref,
                 "is_abstract": e.is_abstract,
-                "annotation": e.annotation.documentation if e.annotation else "",
+                "annotation": e.annotation.get_doc(lang) if e.annotation else "",
             }
             for e in schema.elements
         ],
@@ -121,7 +132,7 @@ def list_xsd_elements(schema_path: str) -> str:
                 "name": ct.name,
                 "is_abstract": ct.is_abstract,
                 "base_type": ct.base_type,
-                "annotation": ct.annotation.documentation if ct.annotation else "",
+                "annotation": ct.annotation.get_doc(lang) if ct.annotation else "",
                 "attributes": [a.name for a in ct.attributes],
             }
             for ct in schema.complex_types
